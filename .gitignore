@@ -1,0 +1,19 @@
+# --- Backend (.NET) ---
+**/bin/
+**/obj/
+**/logs/
+**/.vs/
+*.user
+*.db
+
+# --- Frontend (React) ---
+**/node_modules/
+**/build/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- System Files ---
+.DS_Store
+Thumbs.db
