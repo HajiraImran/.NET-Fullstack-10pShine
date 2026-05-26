@@ -20,5 +20,13 @@ namespace Backend.Models
         public int UserId { get; set; }
 
         public string AssignedTo { get; set; } = string.Empty;
+
+        
+        public bool IsDeleted { get; set; } = false; 
+
+        // 🖊️ Kis ne task create kiya (Admin ya User)
+        public string CreatedBy { get; set; } = string.Empty;
     }
+
+    
 }

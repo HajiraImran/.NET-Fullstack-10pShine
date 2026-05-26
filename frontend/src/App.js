@@ -9,7 +9,7 @@ import NewTask from './components/NewTask';
 import UserProfile from './components/UserProfile';
 import TaskDetail from './components/TaskDetail';
 import KanbanBoard from './components/KanbanBoard';
-
+import EditTask from './components/EditTask'; // 👈 
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -59,7 +59,6 @@ function App() {
               <SidebarLink to="/new-task" icon="➕" label="New Task" />
               <SidebarLink to="/profile" icon="👤" label="Profile" />
               <SidebarLink to="/kanban" icon="📊" label="Kanban Board" />
-
             </div>
 
             <button onClick={handleLogout} style={sidebarLogout}>
@@ -91,14 +90,14 @@ function App() {
           <div style={{ padding: '30px' }}>
             <Routes>
 
-              {/* 🔴 AUTH FLOW FIXED */}
+              {/* AUTH FLOW */}
               {!isLoggedIn ? (
                 <>
                   <Route path="/" element={<Navigate to="/login" />} />
                   <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="*" element={<Navigate to="/login" />} />
-                </>
+                </                >
               ) : (
                 <>
                   <Route path="/" element={<Navigate to="/dashboard" />} />
@@ -108,6 +107,10 @@ function App() {
                   <Route path="/profile" element={<UserProfile />} />
                   <Route path="/task/:id" element={<TaskDetail />} />
                   <Route path="/kanban" element={<KanbanBoard />} />
+                  
+                  {/* 🛠️ NEW ROUTE FIXED: Ab redirection nahi hogi! */}
+                  <Route path="/edit-task/:id" element={<EditTask />} />
+
                   <Route path="*" element={<Navigate to="/dashboard" />} />
                 </>
               )}
@@ -120,7 +123,7 @@ function App() {
   );
 }
 
-/* styles same as yours */
+// Styles
 const sidebarStyle = { width: '260px', backgroundColor: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', padding: '30px 20px', height: '100vh' };
 const logoArea = { fontSize: '22px', fontWeight: '800', marginBottom: '40px' };
 const navGroup = { display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 };
