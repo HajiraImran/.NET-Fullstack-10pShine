@@ -20,10 +20,10 @@ cd .NET-Fullstack-10pShine
 ### Step 3: Run Database Migrations
 cd Backend
 
-# Install Entity Framework tools if not installed:
+### Install Entity Framework tools if not installed:
 dotnet tool install --global dotnet-ef
 
-# to generate table and relationships in Database:
+### to generate table and relationships in Database:
 dotnet ef database update
 
 ### Step 4: Start the server
@@ -49,11 +49,11 @@ npm start
 
 dotnet tool install --global dotnet-sonarscanner
 
-# 1. Open Scanner Tunnel and map security credentials
+### 1. Open Scanner Tunnel and map security credentials
 dotnet sonarscanner begin /k:"TaskManagementTool" /d:sonar.host.url="http://localhost:9000" /d:sonar.token="YOUR_SONARQUBE_GENERATED_TOKEN"
 
-# 2. Recompile completely to generate tracing binaries
+### 2. Recompile completely to generate tracing binaries
 dotnet build --no-incremental
 
-# 3. Terminate analysis sequence and deploy metrics telemetry payload to dashboard
+### 3. Terminate analysis sequence and deploy metrics telemetry payload to dashboard
 dotnet sonarscanner end /d:sonar.token="YOUR_SONARQUBE_GENERATED_TOKEN"
