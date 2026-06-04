@@ -57,3 +57,20 @@ dotnet build --no-incremental
 
 ### 3. Terminate analysis sequence and deploy metrics telemetry payload to dashboard
 dotnet sonarscanner end /d:sonar.token="YOUR_SONARQUBE_GENERATED_TOKEN"
+
+## Project Dashboards 
+
+### 1. Admin Dahbord Taks list
+![Dashboard Part 1](./screenshots/picc1.PNG)
+
+### 2. Admin Dashboard
+![Dashboard Part 2](./screenshots/picc2.PNG)
+
+### 3. New Task Screen
+![Dashboard Part 3](./screenshots/pic3.PNG)
+
+### 4. User Dashboard
+![Dashboard Part 4](./screenshots/pic4.PNG)
+
+### 4. Kanban Board
+![Dashboard Part 4](./screenshots/pic4.PNG)
