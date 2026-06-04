@@ -22,3 +22,14 @@ build/
 # --- System Files ---
 .DS_Store
 Thumbs.db
+
+
+*.log
+test_execution.log
+
+# Exclude SonarQube local analysis artifacts
+.sonarqube/
+[Bb]in/
+[Oo]bj/
+*.log
+test_execution.log
