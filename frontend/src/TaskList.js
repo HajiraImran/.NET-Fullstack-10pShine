@@ -18,7 +18,7 @@ const TaskList = () => {
         ? JSON.parse(storedUser)
         : null;
 
-    const isAdmin = user?.role === 'Admin'; // Helper boolean for role check
+    const isAdmin = user?.role === 'Admin';
 
     // =========================
     // LOAD TASKS
@@ -78,7 +78,7 @@ const TaskList = () => {
                 }
             );
             alert("Task deleted successfully");
-            fetchTasks(); // refresh list
+            fetchTasks();
         } catch (err) {
             console.error(err);
             if (err.response?.status === 400 || err.response?.status === 403) {
@@ -98,31 +98,65 @@ const TaskList = () => {
             : task.status === filter
     );
 
-    // =========================
-    // LOADING
-    // =========================
     if (loading) {
         return (
             <div style={loadingStyle}>
-                Loading tasks...
+                <div style={spinnerStyle}></div>
+                <div style={{ color: '#94a3b8', fontSize: '14px', fontWeight: '500' }}>FETCHING PIPELINE NODES...</div>
             </div>
         );
     }
 
-    // =========================
-    // MAIN UI
-    // =========================
     return (
         <div style={listContainer}>
+            
+            {/* Real-World Premium CSS Engine */}
+            <style>{`
+                @keyframes viewEntrance {
+                    from { transform: translateY(12px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+                .view-animate {
+                    animation: viewEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                }
+                .pipeline-card {
+                    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                }
+                .pipeline-card:hover {
+                    transform: translateY(-3px) !important;
+                    border-color: rgba(99, 102, 241, 0.3) !important;
+                    box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.6) !important;
+                }
+                .action-node-btn {
+                    transition: all 0.2s ease !important;
+                }
+                .action-node-btn:hover {
+                    filter: brightness(1.2);
+                    transform: translateY(-1px);
+                }
+                .glow-create-btn {
+                    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+                    transition: all 0.2s ease !important;
+                }
+                .glow-create-btn:hover {
+                    box-shadow: 0 0 15px rgba(99, 102, 241, 0.3) !important;
+                    transform: translateY(-1px);
+                }
+            `}</style>
 
-            {/* HEADER */}
-            <div style={listHeader}>
+            {/* ========================= */}
+            {/* FILTER & HEADER HUB */}
+            {/* ========================= */}
+            <div style={listHeader} className="view-animate">
                 <div>
-                    <h2 style={{ margin: 0 }}>
-                        {isAdmin ? 'All Tasks (Admin Panel)' : 'My Tasks'}
+                    <h2 style={viewTitle}>
+                        {isAdmin ? 'Global Task Registry' : 'Active Workspace Backlog'}
                     </h2>
                     <p style={subText}>
-                        Total Tasks: {filteredTasks.length}
+                        Total Filtered Contexts: <span style={{color: '#6366f1', fontWeight: '600'}}>{filteredTasks.length}</span>
                     </p>
                 </div>
 
@@ -138,70 +172,73 @@ const TaskList = () => {
                         <option value="Completed">Completed</option>
                     </select>
 
-                    {/* Button dynamic content configuration */}
-                    <Link to="/new-task" style={createBtn}>
+                    <Link to="/new-task" style={createBtn} className="glow-create-btn">
                         + New Task
                     </Link>
                 </div>
             </div>
 
-            {/* TASK GRID */}
-            <div style={taskGrid}>
+            {/* ========================= */}
+            {/* MODERN WORKSPACE GRID */}
+            {/* ========================= */}
+            <div style={taskGrid} className="view-animate">
                 {filteredTasks.length > 0 ? (
                     filteredTasks.map(task => (
-                        <div key={task.id} style={taskCard}>
+                        <div key={task.id} style={taskCard} className="pipeline-card">
 
-                            {/* TOP */}
+                            {/* TOP BLOCK */}
                             <div style={cardTop}>
-                                <h3 style={taskTitle}>{task.title}</h3>
+                                <h3 style={taskTitleStyle}>{task.title}</h3>
                                 <span style={priorityBadge(task.priority)}>
                                     {task.priority}
                                 </span>
                             </div>
 
-                            {/* DESC */}
-                            <p style={description}>
-                                {task.description || "No description"}
+                            {/* EXPORTED DESCRIPTION */}
+                            <p style={descriptionStyle}>
+                                {task.description || "No core description provided for this registry object."}
                             </p>
 
-                            {/* TASK INFO */}
+                            {/* STRUCTURED SPECS */}
                             <div style={infoSection}>
-                                <div>
-                                    <strong>Status:</strong>
-                                    <span style={statusText(task.status)}>
-                                        {" "}{task.status}
-                                    </span>
+                                <div style={metaItemRow}>
+                                    <span style={metaLabel}>Lifecycle Status:</span>
+                                    <span style={statusTextStyle(task.status)}>{task.status === 'InProgress' ? 'In Progress' : task.status}</span>
                                 </div>
-                                <div><strong>Category:</strong> {task.category}</div>
-                                <div><strong>Assigned To:</strong> {task.assignedTo}</div>
-                                <div>
-                                    <strong>Due:</strong>{" "}
-                                    {task.dueDate
-                                        ? new Date(task.dueDate).toLocaleDateString()
-                                        : "No Date"}
+                                <div style={metaItemRow}>
+                                    <span style={metaLabel}>Cluster Category:</span>
+                                    <span style={metaValue}>{task.category || 'General'}</span>
+                                </div>
+                                <div style={metaItemRow}>
+                                    <span style={metaLabel}>Assigned Node:</span>
+                                    <span style={{...metaValue, color: '#6366f1'}}>{task.assignedTo || 'Unassigned'}</span>
+                                </div>
+                                <div style={metaItemRow}>
+                                    <span style={metaLabel}>Target Deadline:</span>
+                                    <span style={metaValue}>
+                                        {task.dueDate ? new Date(task.dueDate).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}) : "No Limit"}
+                                    </span>
                                 </div>
                             </div>
 
-                            {/* ACTIONS FOOTER */}
+                            {/* CONTROL ACTIONS BAR */}
                             <div style={cardFooter}>
-                                <Link to={`/task/${task.id}`} style={viewBtn}>
-                                    View
+                                <Link to={`/task/${task.id}`} style={viewBtn} className="action-node-btn">
+                                    View Link
                                 </Link>
 
-                                {/* 🔄 UPDATE BUTTON (Strict Check) */}
-                                {/* Admin ko sab dikhega, user ko sirf woh dikhega jo uski apni ho AUR admin ki banayi hui na ho */}
+                                {/* STRICT SECURITY HOVER ACTIONS */}
                                 {(isAdmin || (task.userId === user?.id && task.createdBy !== 'Admin')) && (
-                                    <Link to={`/edit-task/${task.id}`} style={editBtn}>
+                                    <Link to={`/edit-task/${task.id}`} style={editBtn} className="action-node-btn">
                                         Update
                                     </Link>
                                 )}
 
-                                {/* 🗑️ DELETE BUTTON (Strict Check) */}
-                                {/* Same security logic: User cannot see delete button if task was created by Admin */}
                                 {(isAdmin || (task.userId === user?.id && task.createdBy !== 'Admin')) && (
                                     <button
                                         onClick={() => handleDelete(task.id)}
                                         style={deleteBtn}
+                                        className="action-node-btn"
                                     >
                                         Delete
                                     </button>
@@ -211,7 +248,10 @@ const TaskList = () => {
                         </div>
                     ))
                 ) : (
-                    <div style={emptyBox}>No tasks found.</div>
+                    <div style={emptyBox}>
+                        <h4 style={{margin: '0 0 6px 0', color: '#f8fafc', fontSize: '15px'}}>Registry cache empty</h4>
+                        <p style={{margin: 0, color: '#64748b', fontSize: '13px'}}>No tasks correspond to the selected execution scope.</p>
+                    </div>
                 )}
             </div>
 
@@ -222,33 +262,59 @@ const TaskList = () => {
 export default TaskList;
 
 // =========================
-// STYLES
+// PREMIUM METALLIC DESIGN SYSTEM
 // =========================
-const listContainer = { padding: '10px' };
-const loadingStyle = { textAlign: 'center', padding: '50px', fontSize: '18px' };
-const listHeader = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' };
-const subText = { color: '#777', marginTop: '5px' };
-const headerRight = { display: 'flex', gap: '10px', alignItems: 'center' };
-const filterSelect = { padding: '10px', borderRadius: '8px', border: '1px solid #ddd' };
-const createBtn = { background: '#6c5ce7', color: '#fff', padding: '10px 15px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold' };
-const taskGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: '20px' };
-const taskCard = { background: '#fff', borderRadius: '15px', padding: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', gap: '15px' };
-const cardTop = { display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
-const taskTitle = { margin: 0, color: '#2d3436' };
-const description = { color: '#636e72', minHeight: '40px' };
-const infoSection = { display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' };
-const cardFooter = { display: 'flex', justifyContent: 'space-between', marginTop: '10px', alignItems: 'center', gap: '5px' };
+const listContainer = { width: '100%', boxSizing: 'border-box' };
+const loadingStyle = { display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '50vh', gap: '12px' };
+const spinnerStyle = { width: '20px', height: '20px', border: '2px solid rgba(255,255,255,0.05)', borderTop: '2px solid #6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' };
 
-const viewBtn = { background: '#0984e3', color: '#fff', padding: '8px 12px', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' };
-const deleteBtn = { background: '#d63031', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' };
-const editBtn = { background: '#fdcb6e', color: '#2d3436', padding: '8px 12px', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: 'bold' };
+const listHeader = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '20px' };
+const viewTitle = { margin: 0, fontSize: '22px', fontWeight: '700', color: '#f8fafc', letterSpacing: '-0.4px' };
+const subText = { color: '#64748b', margin: '4px 0 0 0', fontSize: '13px' };
 
-const priorityBadge = (priority) => ({
-    background: priority === 'High' ? '#ff7675' : priority === 'Medium' ? '#fdcb6e' : '#55efc4',
-    color: priority === 'Medium' ? '#2d3436' : '#fff', padding: '5px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold'
-});
+const headerRight = { display: 'flex', gap: '12px', alignItems: 'center' };
+const filterSelect = { background: '#0f172a', color: '#cbd5e1', padding: '9px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', fontSize: '13px', fontWeight: '500', outline: 'none', cursor: 'pointer' };
+const createBtn = { color: '#fff', padding: '10px 16px', borderRadius: '8px', textDecoration: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.2px' };
 
-const statusText = (status) => ({
-    color: status === 'Completed' ? 'green' : status === 'InProgress' ? '#0984e3' : '#e17055', fontWeight: 'bold'
-});
-const emptyBox = { padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '15px' };
+const taskGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px', width: '100%' };
+const taskCard = { background: '#0f172a', borderRadius: '14px', padding: '24px', border: '1px solid rgba(255, 255, 255, 0.04)', display: 'flex', flexDirection: 'column', gap: '16px', boxSizing: 'border-box' };
+
+const cardTop = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '15px' };
+const taskTitleStyle = { margin: 0, color: '#f8fafc', fontSize: '16px', fontWeight: '600', letterSpacing: '-0.2px' };
+const descriptionStyle = { color: '#94a3b8', fontSize: '14px', lineHeight: '1.5', margin: 0, minHeight: '42px' };
+
+const infoSection = { display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '14px' };
+const metaItemRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
+const metaLabel = { color: '#475569', fontWeight: '600', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.4px' };
+const metaValue = { color: '#cbd5e1', fontWeight: '500' };
+
+const cardFooter = { display: 'flex', justifyContent: 'flex-start', marginTop: '6px', alignItems: 'center', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '14px' };
+
+const viewBtn = { background: 'rgba(255,255,255,0.05)', color: '#cbd5e1', padding: '8px 14px', borderRadius: '6px', textDecoration: 'none', fontSize: '12px', fontWeight: '600', border: '1px solid rgba(255,255,255,0.04)' };
+const editBtn = { background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '8px 14px', borderRadius: '6px', textDecoration: 'none', fontSize: '12px', fontWeight: '600', border: '1px solid rgba(245, 158, 11, 0.15)' };
+const deleteBtn = { background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.15)', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' };
+
+const priorityBadge = (priority) => {
+    const p = priority?.toLowerCase();
+    const color = p === 'high' ? '#ef4444' : p === 'medium' ? '#f59e0b' : '#10b981';
+    return {
+        background: `${color}15`,
+        color: color,
+        padding: '3px 8px',
+        borderRadius: '4px',
+        fontSize: '11px',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: '0.4px',
+        border: `1px solid ${color}20`
+    };
+};
+
+const statusTextStyle = (status) => {
+    let color = '#94a3b8';
+    if (status === 'Completed') color = '#10b981';
+    else if (status === 'InProgress' || status === 'In Progress') color = '#3b82f6';
+    return { color: color, fontWeight: '600' };
+};
+
+const emptyBox = { gridColumn: '1 / -1', padding: '50px', textAlign: 'center', background: '#0f172a', borderRadius: '14px', border: '1px dashed rgba(255,255,255,0.08)' };
