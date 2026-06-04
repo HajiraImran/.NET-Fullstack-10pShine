@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
 using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR; // 🔥 ADDED FOR SIGNALR
+using Backend.Hubs;              // 🔥 ADDED FOR TASKHUB
 
 namespace Backend.Controllers
 {
@@ -14,11 +16,14 @@ namespace Backend.Controllers
     {
         private readonly ApiDbContext _context;
         private readonly ILogger<TasksController> _logger;
+        private readonly IHubContext<TaskHub> _hubContext; // 🔥 Added SignalR Hub Context
 
-        public TasksController(ApiDbContext context, ILogger<TasksController> logger)
+        // Updated Constructor to Inject SignalR Hub
+        public TasksController(ApiDbContext context, ILogger<TasksController> logger, IHubContext<TaskHub> hubContext)
         {
             _context = context;
             _logger = logger;
+            _hubContext = hubContext; // Assigning Hub Context
         }
 
         // =========================================
@@ -30,19 +35,25 @@ namespace Backend.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            // 🔍 FILTER: Only fetch active tasks (Exclude Soft-Deleted Tasks)
+            _logger.LogInformation("FETCH_ATTEMPT: User {UserId} with Role {Role} requested tasks list.", userIdClaim, role);
+
             var query = _context.Tasks.Where(t => !t.IsDeleted).AsQueryable();
 
-            // USER → only own tasks
             if (role != "Admin")
             {
                 if (!int.TryParse(userIdClaim, out int userId))
+                {
+                    _logger.LogWarning("FETCH_FAILED: Unauthorized token mapping attempt for user.");
                     return Unauthorized(new { message = "Invalid token" });
+                }
 
                 query = query.Where(t => t.UserId == userId);
             }
 
-            return Ok(await query.ToListAsync());
+            var tasks = await query.ToListAsync();
+            _logger.LogInformation("FETCH_SUCCESS: Successfully returned {Count} tasks to User {UserId}", tasks.Count, userIdClaim);
+            
+            return Ok(tasks);
         }
 
         // =========================================
@@ -54,7 +65,6 @@ namespace Backend.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            // 🔍 FILTER: Exclude soft-deleted tasks from statistics
             var query = _context.Tasks.Where(t => !t.IsDeleted).AsQueryable();
 
             if (role != "Admin")
@@ -80,11 +90,15 @@ namespace Backend.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<TaskItem>> GetTask(int id)
         {
-            // 🔍 Check active tasks only
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
             var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
 
             if (task == null)
+            {
+                _logger.LogWarning("VIEW_FAILED: Task ID {TaskId} not found or inactive. Requested by User {UserId}", id, userIdClaim);
                 return NotFound(new { message = "Task not found" });
+            }
 
             return Ok(task);
         }
@@ -101,46 +115,52 @@ namespace Backend.Controllers
             if (!int.TryParse(userIdClaim, out int loggedInUserId))
                 return Unauthorized(new { message = "Invalid token" });
 
-            // 1. SECURITY CHECK: Regular User settings forced
             if (role != "Admin")
             {
                 task.UserId = loggedInUserId; 
                 task.Category = "General";    
             }
 
-            // 2. USER VALIDATION: Check assigned user existence
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == task.UserId);
 
             if (user == null)
+            {
+                _logger.LogWarning("CREATION_FAILED: Invalid target UserId {TargetId} provided by User {UserId}", task.UserId, userIdClaim);
                 return BadRequest(new { message = "Invalid UserId" });
+            }
 
             task.AssignedTo = user.Username;
-            task.IsDeleted = false; // Default explicitly set to active
-            
-            // ✨ SAVE ORIGIN: Trace who actually initiated this task creation
+            task.IsDeleted = false; 
             task.CreatedBy = role == "Admin" ? "Admin" : "User";
 
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Task created and assigned to {User} by {Role}. Origin: {Origin}", user.Username, role, task.CreatedBy);
+            _logger.LogInformation("USER_ACTIVITY: Task ID {TaskId} ('{Title}') successfully created by User {UserId} ({Role}). Assigned to {Assignee}", 
+                task.Id, task.Title, userIdClaim, role, task.AssignedTo);
+
+            // 🔥 SIGNALR REAL-TIME BROADCAST FOR CREATION
+            // Baki tamam open tabs ko inform karein ke naya task create ho gaya hai
+            await _hubContext.Clients.All.SendAsync("ReceiveTaskCreated", task);
 
             return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
         }
 
-        // =========================================
-        // UPDATE TASK (OWNER & ORIGIN RESTRICTED)
-        // =========================================
+        // ===================================================
+        // UPDATE TASK (FIXED: PERMIT STATUS SHIFT FOR USERS)
+        // ===================================================
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTask(int id, TaskItem updatedTask)
         {
             var existingTask = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-
-            if (existingTask == null)
-                return NotFound(new { message = "Task not found" });
-
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (existingTask == null)
+            {
+                _logger.LogWarning("UPDATE_FAILED: Attempted update on missing/deleted Task ID {TaskId} by User {UserId}", id, userIdClaim);
+                return NotFound(new { message = "Task not found" });
+            }
 
             // USER security boundary verification
             if (role != "Admin")
@@ -148,38 +168,49 @@ namespace Backend.Controllers
                 if (!int.TryParse(userIdClaim, out int userId))
                     return Unauthorized();
 
-                // Check 1: User can only update their own assigned tasks
                 if (existingTask.UserId != userId)
+                {
+                    _logger.LogWarning("SECURITY_ALERT: Unauthorized modification attempt! User {UserId} tried to access Task ID {TaskId} owned by User {OwnerId}", 
+                        userId, id, existingTask.UserId);
                     return Forbid();
+                }
 
-                // Check 2: 🛑 CRITICAL REQ! If the task was assigned by Admin, the User cannot edit it.
+                // ===================================================
+                // 🛠️ SMART POLICY OVERRIDE FOR DRAG & DROP SHIFT
+                // ===================================================
                 if (existingTask.CreatedBy == "Admin")
                 {
-                    return BadRequest(new { message = "Action Denied: You cannot modify tasks assigned to you by the Admin." });
+                    // Agar user sirf STATUS badal raha hai (Kanban Board Action)
+                    if (existingTask.Title != updatedTask.Title || 
+                        existingTask.Description != updatedTask.Description ||
+                        existingTask.Priority != updatedTask.Priority ||
+                        existingTask.DueDate != updatedTask.DueDate)
+                    {
+                        _logger.LogWarning("POLICY_VIOLATION: User {UserId} tried to modify Admin protected text attributes on Task ID {TaskId}.", userId, id);
+                        return BadRequest(new { message = "Action Denied: You can only update the status of Admin-assigned tasks." });
+                    }
                 }
             }
 
-            // Common mutable fields
+            // Data Mapping
             existingTask.Title = updatedTask.Title;
             existingTask.Description = updatedTask.Description;
-            existingTask.Status = updatedTask.Status;
+            existingTask.Status = updatedTask.Status; // Yeh hamesha chalega!
             existingTask.Priority = updatedTask.Priority;
             existingTask.DueDate = updatedTask.DueDate;
 
-            // =========================================
-            // ROLE BASED PRIVILEGES FOR ADMIN
-            // =========================================
             if (role == "Admin")
             {
-                // Admin can modify category freely
                 existingTask.Category = updatedTask.Category;
 
-                // Admin reassignment flow safe check
                 if (updatedTask.UserId > 0 && updatedTask.UserId != existingTask.UserId)
                 {
                     var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == updatedTask.UserId);
                     if (targetUser != null)
                     {
+                        _logger.LogInformation("TASK_REASSIGNED: Admin {AdminId} reassigned Task ID {TaskId} from {OldUser} to {NewUser}", 
+                            userIdClaim, id, existingTask.AssignedTo, targetUser.Username);
+                        
                         existingTask.UserId = targetUser.Id;
                         existingTask.AssignedTo = targetUser.Username;
                     }
@@ -193,12 +224,14 @@ namespace Backend.Controllers
                     existingTask.AssignedTo = updatedTask.AssignedTo;
                 }
             }
-            else
-            {
-                _logger.LogWarning("User {UserId} attempted to alter task configuration parameters.", userIdClaim);
-            }
 
             await _context.SaveChangesAsync();
+            _logger.LogInformation("TASK_UPDATED: Task ID {TaskId} successfully saved by User {UserId} ({Role})", id, userIdClaim, role);
+
+            // 🔥 SIGNALR REAL-TIME BROADCAST FOR STATUS / CONTENT CHANGE
+            // Jaise hi save ho, pure environment ko update bhej dein (Dono IDs aur statuses sync rakhega)
+            await _hubContext.Clients.All.SendAsync("ReceiveStatusUpdate", id.ToString(), existingTask.Status, existingTask);
+
             return Ok(new { message = "Task updated successfully" });
         }
 
@@ -209,37 +242,43 @@ namespace Backend.Controllers
         public async Task<IActionResult> DeleteTask(int id)
         {
             var task = await _context.Tasks.FindAsync(id);
-
-            if (task == null || task.IsDeleted)
-                return NotFound(new { message = "Task not found" });
-
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            // USER security boundary verification
+            if (task == null || task.IsDeleted)
+            {
+                _logger.LogWarning("DELETE_FAILED: Attempted delete on missing/deleted Task ID {TaskId} by User {UserId}", id, userIdClaim);
+                return NotFound(new { message = "Task not found" });
+            }
+
             if (role != "Admin")
             {
                 if (!int.TryParse(userIdClaim, out int userId))
                     return Unauthorized();
 
-                // Check 1: User can only delete their own assigned tasks
                 if (task.UserId != userId)
+                {
+                    _logger.LogWarning("SECURITY_ALERT: Unauthorized delete attempt! User {UserId} tried to delete Task ID {TaskId} owned by User {OwnerId}", 
+                        userId, id, task.UserId);
                     return Forbid();
+                }
 
-                // Check 2: 🛑 CRITICAL REQ! If the task was assigned by Admin, the User cannot delete it.
                 if (task.CreatedBy == "Admin")
                 {
+                    _logger.LogWarning("POLICY_VIOLATION: User {UserId} tried to delete Admin-assigned Task ID {TaskId}. Request Blocked.", userId, id);
                     return BadRequest(new { message = "Action Denied: You cannot delete tasks assigned to you by the Admin." });
                 }
             }
 
-            // ✨ SOFT DELETE CORE LOGIC: Row is retained, visibility flag toggled to true
             task.IsDeleted = true; 
-
             _context.Entry(task).State = EntityState.Modified;
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Task ID {TaskId} successfully soft-deleted by {Role}.", id, role);
+            _logger.LogWarning("TASK_DELETED: Task ID {TaskId} has been soft-deleted by User {UserId} ({Role}).", id, userIdClaim, role);
+
+            // 🔥 SIGNALR REAL-TIME BROADCAST FOR DELETION
+            // Baki screen se live delete karne ke liye update bhejein
+            await _hubContext.Clients.All.SendAsync("ReceiveTaskDeleted", id.ToString());
 
             return Ok(new { message = "Task deleted successfully" });
         }

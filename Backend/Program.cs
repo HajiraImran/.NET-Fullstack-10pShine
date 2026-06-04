@@ -30,6 +30,11 @@ try
 
     builder.Host.UseSerilog();
 
+    // =========================================
+    // 📡 SIGNALR SERVICES INTEGRATION
+    // =========================================
+    builder.Services.AddSignalR();
+
     // =========================
     // DATABASE
     // =========================
@@ -68,23 +73,23 @@ try
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero,
 
-            // 🔥 FINAL FIX (IMPORTANT)
             RoleClaimType = ClaimTypes.Role,
             NameClaimType = ClaimTypes.NameIdentifier
         };
     });
 
-    // =========================
-    // CORS
-    // =========================
+    // =======================================================
+    // 🔐 CORS POLICY (UPDATED: REQUIRED FOR SIGNALR SOCKETS)
+    // =======================================================
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("AllowReactApp",
             policy =>
             {
-                policy.WithOrigins("http://localhost:3000")
+                policy.WithOrigins("http://localhost:3000") // Aapka React frontend URL
                       .AllowAnyHeader()
-                      .AllowAnyMethod();
+                      .AllowAnyMethod()
+                      .AllowCredentials(); // 🔥 CRITICAL FOR SIGNALR: Allows cookies/auth tokens over websockets
             });
     });
 
@@ -135,6 +140,11 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+
+    // =========================================
+    // 📡 MAP SIGNALR HUB ENDPOINT
+    // =========================================
+    app.MapHub<Backend.Hubs.TaskHub>("/taskHub"); 
 
     // =========================
     // ADMIN SEED
