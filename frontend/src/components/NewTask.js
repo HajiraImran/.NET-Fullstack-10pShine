@@ -13,7 +13,7 @@ const NewTask = () => {
             ? JSON.parse(storedUser)
             : null;
 
-    const isAdmin = user?.role === "Admin"; // Role checker
+    const isAdmin = user?.role === "Admin";
 
     // =========================
     // TASK STATE
@@ -23,7 +23,7 @@ const NewTask = () => {
         description: '',
         status: 'Pending',
         priority: 'Medium',
-        category: isAdmin ? 'Development' : 'General', // Admin ke liye default dropdown value, User ke liye General
+        category: isAdmin ? 'Development' : 'General', 
         dueDate: '',
         userId: ''
     });
@@ -92,7 +92,7 @@ const NewTask = () => {
                 description: task.description,
                 status: task.status,
                 priority: task.priority,
-                category: isAdmin ? task.category : "General", // Admin ki select ki hui category jayegi, user ki hamesha General
+                category: isAdmin ? task.category : "General", 
                 dueDate: task.dueDate,
                 userId: isAdmin ? Number(task.userId) : 0,
                 assignedTo: isAdmin ? (selectedUser?.username || '') : user.username
@@ -109,7 +109,7 @@ const NewTask = () => {
                 }
             );
 
-            alert("Task Created Successfully!");
+            alert("Task Created Successfully! 🎉");
             navigate('/tasks');
 
         } catch (err) {
@@ -119,97 +119,197 @@ const NewTask = () => {
     };
 
     return (
-        <div style={container}>
+        <div style={container} className="form-animate">
 
-            <h2>Create New Task</h2>
+            {/* Premium Style Layers */}
+            <style>{`
+                @keyframes formEntrance {
+                    from { transform: translateY(12px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                .form-animate {
+                    animation: formEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                }
+                .saas-field {
+                    background: #090d16 !important;
+                    color: #f8fafc !important;
+                    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+                    transition: all 0.2s ease !important;
+                    outline: none !important;
+                }
+                .saas-field:focus {
+                    border-color: #6366f1 !important;
+                    box-shadow: 0 0 10px rgba(99, 102, 241, 0.15) !important;
+                }
+                .glow-btn {
+                    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+                    transition: all 0.2s ease !important;
+                }
+                .glow-btn:hover {
+                    box-shadow: 0 0 15px rgba(99, 102, 241, 0.3) !important;
+                    filter: brightness(1.1);
+                    transform: translateY(-1px);
+                }
+                .saas-label {
+                    color: #475569;
+                    font-size: 11px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 2px;
+                }
+            `}</style>
 
-            <form onSubmit={handleSubmit} style={form}>
+            <div style={formHeader}>
+                <h2 style={formTitle}>Initialize Task</h2>
+                {isAdmin ? (
+                    <span style={adminBadge}>Admin Mode</span>
+                ) : (
+                    <span style={userBadge}>Standard Scope</span>
+                )}
+            </div>
+
+            <form onSubmit={handleSubmit} style={formStyle}>
 
                 {/* TITLE */}
-                <input
-                    type="text"
-                    placeholder="Task Title"
-                    required
-                    value={task.title}
-                    onChange={(e) => setTask({ ...task, title: e.target.value })}
-                    style={input}
-                />
-
-                {/* DESCRIPTION */}
-                <textarea
-                    placeholder="Description"
-                    value={task.description}
-                    onChange={(e) => setTask({ ...task, description: e.target.value })}
-                    style={textarea}
-                />
-
-                {/* STATUS */}
-                <select value={task.status} onChange={(e) => setTask({ ...task, status: e.target.value })} style={input}>
-                    <option value="Pending">Pending</option>
-                    <option value="InProgress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                </select>
-
-                {/* PRIORITY */}
-                <select value={task.priority} onChange={(e) => setTask({ ...task, priority: e.target.value })} style={input}>
-                    <option value="Low">Low Priority</option>
-                    <option value="Medium">Medium Priority</option>
-                    <option value="High">High Priority</option>
-                </select>
-
-                {/* CATEGORY FIELD */}
-                {isAdmin ? (
-                    /* Admin ke liye Dropdown List */
-                    <select 
-                        value={task.category} 
-                        onChange={(e) => setTask({ ...task, category: e.target.value })} 
-                        style={input}
-                    >
-                        <option value="Development">Development</option>
-                        <option value="Testing">Testing</option>
-                        <option value="HR / Recruitment">HR / Recruitment</option>
-                        <option value="Design">Design</option>
-                        <option value="Management">Management</option>
-                    </select>
-                ) : (
-                    /* Regular User ke liye locked field jo sirf "General" dikhayegi */
+                <div style={inputGroup}>
+                    <label className="saas-label">Task Title</label>
                     <input
                         type="text"
-                        value="General"
-                        disabled // Is se user type nahi kar sakega, field lock ho jayegi
-                        style={{ ...input, backgroundColor: '#f1f2f6', cursor: 'not-allowed' }} 
-                    />
-                )}
-
-                {/* DUE DATE */}
-                <input
-                    type="date"
-                    required
-                    value={task.dueDate}
-                    onChange={(e) => setTask({ ...task, dueDate: e.target.value })}
-                    style={input}
-                />
-
-                {/* ASSIGN USER (Sirf Admin ko dikhega) */}
-                {isAdmin && (
-                    <select
+                        placeholder="Define core system task objective..."
                         required
-                        value={task.userId}
-                        onChange={(e) => setTask({ ...task, userId: e.target.value })}
-                        style={input}
-                    >
-                        <option value="">Select User</option>
-                        {users.map((u) => (
-                            <option key={u.id} value={u.id}>
-                                {u.username} ({u.email})
-                            </option>
-                        ))}
-                    </select>
+                        value={task.title}
+                        onChange={(e) => setTask({ ...task, title: e.target.value })}
+                        style={inputStyle}
+                        className="saas-field"
+                    />
+                </div>
+
+                {/* DESCRIPTION */}
+                <div style={inputGroup}>
+                    <label className="saas-label">Task Context / Details</label>
+                    <textarea
+                        placeholder="Provide detailed breakdown or scope details..."
+                        value={task.description}
+                        onChange={(e) => setTask({ ...task, description: e.target.value })}
+                        style={textareaStyle}
+                        className="saas-field"
+                    />
+                </div>
+
+                {/* STATUS & PRIORITY */}
+                <div style={rowStyle}>
+                    <div style={inputGroup}>
+                        <label className="saas-label">Lifecycle Status</label>
+                        <select 
+                            value={task.status} 
+                            onChange={(e) => setTask({ ...task, status: e.target.value })} 
+                            style={inputStyle}
+                            className="saas-field"
+                        >
+                            <option value="Pending">Pending</option>
+                            <option value="InProgress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+
+                    <div style={inputGroup}>
+                        <label className="saas-label">Severity Level</label>
+                        <select 
+                            value={task.priority} 
+                            onChange={(e) => setTask({ ...task, priority: e.target.value })} 
+                            style={inputStyle}
+                            className="saas-field"
+                        >
+                            <option value="Low">Low Priority</option>
+                            <option value="Medium">Medium Priority</option>
+                            <option value="High">High Priority</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* CATEGORY & ASSIGN USER */}
+                <div style={rowStyle}>
+                    <div style={inputGroup}>
+                        <label className="saas-label">Context Category</label>
+                        {isAdmin ? (
+                            <select 
+                                value={task.category} 
+                                onChange={(e) => setTask({ ...task, category: e.target.value })} 
+                                style={inputStyle}
+                                className="saas-field"
+                            >
+                                <option value="Development">Development</option>
+                                <option value="Testing">Testing</option>
+                                <option value="HR / Recruitment">HR / Recruitment</option>
+                                <option value="Design">Design</option>
+                                <option value="Management">Management</option>
+                            </select>
+                        ) : (
+                            <input
+                                type="text"
+                                value="General"
+                                disabled 
+                                style={disabledStyle} 
+                            />
+                        )}
+                    </div>
+
+                    {/* DUE DATE (Placed strategically based on role layout) */}
+                    {!isAdmin && (
+                        <div style={inputGroup}>
+                            <label className="saas-label">Target Completion Epoch</label>
+                            <input
+                                type="date"
+                                required
+                                value={task.dueDate}
+                                onChange={(e) => setTask({ ...task, dueDate: e.target.value })}
+                                style={inputStyle}
+                                className="saas-field"
+                            />
+                        </div>
+                    )}
+
+                    {/* ASSIGN USER (Sirf Admin ko dikhega) */}
+                    {isAdmin && (
+                        <div style={inputGroup}>
+                            <label className="saas-label">Target Assignment Node</label>
+                            <select
+                                required
+                                value={task.userId}
+                                onChange={(e) => setTask({ ...task, userId: e.target.value })}
+                                style={inputStyle}
+                                className="saas-field"
+                            >
+                                <option value="">Select Target Resource</option>
+                                {users.map((u) => (
+                                    <option key={u.id} value={u.id}>
+                                        {u.username}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                </div>
+
+                {/* DUE DATE IN OWN ROW IF ADMIN */}
+                {isAdmin && (
+                    <div style={inputGroup}>
+                        <label className="saas-label">Target Completion Epoch</label>
+                        <input
+                            type="date"
+                            required
+                            value={task.dueDate}
+                            onChange={(e) => setTask({ ...task, dueDate: e.target.value })}
+                            style={inputStyle}
+                            className="saas-field"
+                        />
+                    </div>
                 )}
 
-                {/* BUTTON */}
-                <button type="submit" style={btn}>
-                    Create Task
+                {/* SUBMIT BUTTON */}
+                <button type="submit" style={btnStyle} className="glow-btn">
+                    Deploy New Task Object
                 </button>
 
             </form>
@@ -220,10 +320,31 @@ const NewTask = () => {
 export default NewTask;
 
 // =========================
-// STYLES (Unchanged)
+// PREMIUM MATTE DARK STYLES
 // =========================
-const container = { padding: '30px', maxWidth: '600px', margin: '0 auto', background: '#fff', borderRadius: '15px', boxShadow: '0 5px 15px rgba(0,0,0,0.1)' };
-const form = { display: 'flex', flexDirection: 'column', gap: '15px' };
-const input = { padding: '12px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '15px' };
-const textarea = { padding: '12px', borderRadius: '8px', border: '1px solid #ccc', minHeight: '100px', fontSize: '15px' };
-const btn = { padding: '14px', background: '#6c5ce7', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' };
+const container = { 
+    background: '#0f172a', 
+    padding: '35px', 
+    maxWidth: '650px', 
+    width: '100%',
+    margin: '0 auto', 
+    borderRadius: '16px', 
+    border: '1px solid rgba(255, 255, 255, 0.04)',
+    boxSizing: 'border-box'
+};
+
+const formHeader = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '16px' };
+const formTitle = { margin: 0, fontSize: '20px', fontWeight: '700', color: '#f8fafc', letterSpacing: '-0.3px' };
+
+const adminBadge = { background: 'rgba(99, 102, 241, 0.1)', color: '#a5b4fc', fontSize: '11px', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.2)', fontWeight: '600' };
+const userBadge = { background: 'rgba(255, 255, 255, 0.04)', color: '#64748b', fontSize: '11px', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.04)', fontWeight: '600' };
+
+const formStyle = { display: 'flex', flexDirection: 'column', gap: '20px' };
+const inputGroup = { display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 };
+
+const inputStyle = { padding: '11px 14px', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', width: '100%' };
+const textareaStyle = { ...inputStyle, minHeight: '90px', resize: 'none' };
+const disabledStyle = { ...inputStyle, background: 'rgba(255,255,255,0.02)', color: '#475569', border: '1px dashed rgba(255,255,255,0.05)', cursor: 'not-allowed' };
+
+const rowStyle = { display: 'flex', gap: '20px', flexWrap: 'wrap' };
+const btnStyle = { padding: '13px', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', marginTop: '8px' };
