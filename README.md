@@ -60,6 +60,8 @@ dotnet sonarscanner end /d:sonar.token="YOUR_SONARQUBE_GENERATED_TOKEN"
 
 ## Project Dashboards 
 
+# Project Dashboards 
+
 ### 1. Admin Dahbord Taks list
 ![Dashboard Part 1](./screenshots/picc1.PNG)
 
@@ -73,4 +75,4 @@ dotnet sonarscanner end /d:sonar.token="YOUR_SONARQUBE_GENERATED_TOKEN"
 ![Dashboard Part 4](./screenshots/pic4.PNG)
 
 ### 4. Kanban Board
-![Dashboard Part 4](./screenshots/pic4.PNG)
+![Dashboard Part 4](./screenshots/pic5.PNG)
